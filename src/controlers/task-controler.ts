@@ -6,6 +6,31 @@ import mongoose from 'mongoose';
 import { BadRequestError, NotFoundError } from '../error';
 import ERROR_MESSAGES from '../utilt/error-messages';
 
+export const getTasks = (req: Request, res: Response, next: NextFunction) => {
+  const { date, from, to } = req.query;
+
+  const filter: any = {};
+  if (date) {
+    const targetDate = new Date(date as string);
+    filter.createdAt = {
+      $gte: new Date(targetDate.setHours(0, 0, 0, 0)),
+      $lte: new Date(targetDate.setHours(23, 59, 59, 999)),
+    };
+  } else if (from && to) {
+    filter.createdAt = {
+      $gte: new Date(from as string),
+      $lte: new Date(to as string),
+    };
+  }
+
+  Task.find(filter)
+    .sort({ createdAt: -1 })
+    .then((tasks) => res.json(tasks))
+    .catch((error) => {
+      next(new BadRequestError('Ошибка при получении списка обращений'));
+    });
+};
+
 export const createTask = async (
   req: Request,
   res: Response,
@@ -105,31 +130,6 @@ export const cancelTask = (req: Request, res: Response, next: NextFunction) => {
       }
 
       return next(error);
-    });
-};
-
-export const getTasks = (req: Request, res: Response, next: NextFunction) => {
-  const { date, from, to } = req.query;
-
-  const filter: any = {};
-  if (date) {
-    const targetDate = new Date(date as string);
-    filter.createdAt = {
-      $gte: new Date(targetDate.setHours(0, 0, 0, 0)),
-      $lte: new Date(targetDate.setHours(23, 59, 59, 999)),
-    };
-  } else if (from && to) {
-    filter.createdAt = {
-      $gte: new Date(from as string),
-      $lte: new Date(to as string),
-    };
-  }
-
-  Task.find(filter)
-    .sort({ createdAt: -1 })
-    .then((tasks) => res.json(tasks))
-    .catch((error) => {
-      next(new BadRequestError('Ошибка при получении списка обращений'));
     });
 };
 
